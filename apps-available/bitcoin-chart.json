@@ -1,0 +1,13 @@
+{
+    "id": "bitcoin-chart",
+    "name": "Bitcoin Price Chart",
+    "description": "Live Bitcoin price chart with multiple timeframes",
+    "version": "1.0.0",
+    "author": "Homelab Monitor",
+    "defaultConfig": {
+        "updateInterval": 30000,
+        "currency": "USD",
+        "showPrice": true,
+        "showChange": true
+    }
+}
