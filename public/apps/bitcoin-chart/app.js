@@ -18,7 +18,7 @@ export default class BitcoinChartApp {
         this.isExpanded = false;
         this.selectedTimeframe = "24h";
 
-        // Shared browser cache
+        // Shared cache (so multiple widgets don’t refetch)
         if (!window._btcCache) {
             window._btcCache = { data: {}, lastFetched: 0, fetching: {} };
         }
@@ -69,7 +69,6 @@ export default class BitcoinChartApp {
                 </div>
             </div>
         `;
-
         this.addStyles();
         this.bindEvents();
     }
@@ -112,11 +111,9 @@ export default class BitcoinChartApp {
     }
 
     bindEvents() {
-        // Expand on click
         this.element.querySelector(".bitcoin-container").addEventListener("click", () =>
             this.toggleExpanded()
         );
-        // Close expanded
         this.element.querySelector(".close-expanded").addEventListener("click", (e) => {
             e.stopPropagation();
             this.toggleExpanded();
@@ -124,7 +121,6 @@ export default class BitcoinChartApp {
         this.element.querySelector(".expanded-overlay").addEventListener("click", () =>
             this.toggleExpanded()
         );
-        // Timeframe buttons
         this.element.querySelectorAll(".timeframe-btn").forEach((btn) => {
             btn.addEventListener("click", (e) => {
                 e.stopPropagation();
@@ -137,43 +133,38 @@ export default class BitcoinChartApp {
         this.fetchAndRender("24h");
         this.intervalId = setInterval(() => {
             this.fetchAndRender(this.selectedTimeframe);
-        }, 120000); // every 2 min
+        }, 120000);
     }
 
     async fetchFromAPI(timeframe = "24h") {
-        // browser shared cache
         const cache = window._btcCache;
         const now = Date.now();
 
-        if (
-            cache.data[timeframe] &&
-            now - cache.lastFetched < 60000 // 1 min cache
-        ) {
+        if (cache.data[timeframe] && now - cache.lastFetched < 60000) {
             return cache.data[timeframe];
         }
 
         if (cache.fetching[timeframe]) {
-            return cache.fetching[timeframe]; // promise in progress
+            return cache.fetching[timeframe];
         }
 
-        const daysMap = {
-            "1h": { days: 0.05, interval: "minute" },
-            "6h": { days: 0.25, interval: "minute" },
-            "12h": { days: 0.5, interval: "hourly" },
-            "24h": { days: 1, interval: "hourly" },
-            "7d": { days: 7, interval: "hourly" }
-        };
+        // Use CoinCap API (free, CORS enabled)
+        let url;
+        if (timeframe === "7d") {
+            url = `https://api.coincap.io/v2/assets/bitcoin/history?interval=d1`;
+        } else if (timeframe === "24h") {
+            url = `https://api.coincap.io/v2/assets/bitcoin/history?interval=h1`;
+        } else {
+            url = `https://api.coincap.io/v2/assets/bitcoin/history?interval=m15`;
+        }
 
-        const cfg = daysMap[timeframe] || daysMap["24h"];
-        const url = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${cfg.days}&interval=${cfg.interval}`;
-
-        console.log("🌍 Fetching real BTC data for", timeframe);
+        console.log("🌍 Fetching BTC data for", timeframe);
         const p = fetch(url)
             .then((r) => r.json())
             .then((json) => {
-                const series = json.prices.map(([t, p]) => ({
-                    time: new Date(t),
-                    price: p
+                const series = (json.data || []).map((dp) => ({
+                    time: new Date(dp.time),
+                    price: parseFloat(dp.priceUsd)
                 }));
                 cache.data[timeframe] = series;
                 cache.lastFetched = now;
@@ -189,15 +180,13 @@ export default class BitcoinChartApp {
 
     async fetchAndRender(timeframe) {
         const series = await this.fetchFromAPI(timeframe);
+        if (!series.length) return;
+
         this.historicalData[timeframe] = series;
         this.currentPrice = series.at(-1).price;
 
-        // price update
         this.updateDisplay();
-
-        // mini chart always uses 24h
         this.drawMiniChart();
-
         if (this.isExpanded) {
             this.drawExpandedChart();
             this.updateChartInfo();
@@ -207,29 +196,25 @@ export default class BitcoinChartApp {
     updateDisplay() {
         this.element.querySelector("#bitcoin-price").textContent =
             "$" + this.currentPrice.toLocaleString();
-        // For 24h change — quick request to small endpoint
-        fetch(
-            "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true"
-        )
-            .then((r) => r.json())
-            .then((json) => {
-                this.priceChange24h = json.bitcoin.usd_24h_change;
-                const changeEl = this.element.querySelector("#bitcoin-change");
-                changeEl.textContent =
-                    (this.priceChange24h >= 0 ? "+" : "") +
-                    this.priceChange24h.toFixed(2) +
-                    "% (24h)";
-                changeEl.className =
-                    "bitcoin-change " +
-                    (this.priceChange24h >= 0 ? "positive" : "negative");
+        // Recalculate 24h change from 24h history
+        const data24h = this.historicalData["24h"];
+        if (data24h.length > 1) {
+            const first = data24h[0].price;
+            const last = data24h.at(-1).price;
+            this.priceChange24h = ((last - first) / first) * 100;
+        }
+        const changeEl = this.element.querySelector("#bitcoin-change");
+        changeEl.textContent =
+            (this.priceChange24h >= 0 ? "+" : "") +
+            this.priceChange24h.toFixed(2) +
+            "% (24h)";
+        changeEl.className =
+            "bitcoin-change " +
+            (this.priceChange24h >= 0 ? "positive" : "negative");
 
-                const expanded = this.element.querySelector(
-                    "#current-price-large"
-                );
-                if (expanded)
-                    expanded.textContent =
-                        "$" + this.currentPrice.toLocaleString();
-            });
+        const expanded = this.element.querySelector("#current-price-large");
+        if (expanded)
+            expanded.textContent = "$" + this.currentPrice.toLocaleString();
     }
 
     drawMiniChart() {
@@ -254,6 +239,7 @@ export default class BitcoinChartApp {
         const prices = data.map((d) => d.price);
         const min = Math.min(...prices);
         const max = Math.max(...prices);
+        if (min === max) return;
 
         const margin = 40;
         const w = width - margin * 2;
@@ -281,7 +267,6 @@ export default class BitcoinChartApp {
         this.element.querySelector(".bitcoin-expanded").style.display = this.isExpanded
             ? "flex"
             : "none";
-
         if (this.isExpanded) {
             this.fetchAndRender(this.selectedTimeframe);
         }
