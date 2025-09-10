@@ -83,7 +83,7 @@ class AppManager {
     async loadAppContent(app, contentElement) {
         try {
             // Dynamically load app-specific JavaScript
-            const appModule = await import(`./apps/${app.appId}/app.js`);
+            const appModule = await import(`/apps/${app.appId}/app.js`);
             const appInstance = new appModule.default(app.config, contentElement, this);
             appInstance.init();
             
