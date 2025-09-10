@@ -6,6 +6,20 @@ const WebSocket = require('ws');
 const app = express();
 const PORT = 80;
 
+const appDirs = ["public/apps/bitcoin-chart"]; // later: discover all dirs
+
+appDirs.forEach((dir) => {
+  try {
+    const backendPath = path.join(__dirname, dir, "backend.js");
+    if (fs.existsSync(backendPath)) {
+      require(backendPath)(app);
+      console.log(`✔ Registered backend API for ${dir}`);
+    }
+  } catch (err) {
+    console.error(`Failed to load backend for ${dir}`, err.message);
+  }
+});
+
 // Middleware
 app.use(express.json());
 app.use(express.static('public'));
