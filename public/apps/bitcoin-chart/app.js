@@ -10,10 +10,11 @@ export default class BitcoinChartApp {
             '1h': [],
             '6h': [],
             '12h': [],
-            '24h': []
+            '24h': [],
+            '7d': []
         };
         this.isExpanded = false;
-        this.selectedTimeframe = '1h';
+        this.selectedTimeframe = '24h';
     }
     
     init() {
@@ -31,31 +32,35 @@ export default class BitcoinChartApp {
                 </div>
                 <div class="bitcoin-change" id="bitcoin-change">Loading...</div>
                 <div class="bitcoin-mini-chart" id="bitcoin-mini-chart">
-                    <canvas id="bitcoin-canvas-mini" width="200" height="80"></canvas>
+                    <canvas id="bitcoin-canvas-mini" width="260" height="100"></canvas>
                 </div>
                 <div class="click-hint">Click for detailed view</div>
             </div>
             
             <div class="bitcoin-expanded" id="bitcoin-expanded" style="display: none;">
-                <div class="expanded-header">
-                    <div class="expanded-title">
-                        <h3>₿ Bitcoin Price Chart</h3>
-                        <div class="current-price-large" id="current-price-large">$${this.currentPrice.toLocaleString()}</div>
+                <div class="expanded-overlay"></div>
+                <div class="expanded-content">
+                    <div class="expanded-header">
+                        <div class="expanded-title">
+                            <h3>₿ Bitcoin Price Chart</h3>
+                            <div class="current-price-large" id="current-price-large">$${this.currentPrice.toLocaleString()}</div>
+                        </div>
+                        <button class="close-expanded">×</button>
                     </div>
-                    <button class="close-expanded">×</button>
-                </div>
-                <div class="timeframe-selector">
-                    <button class="timeframe-btn active" data-timeframe="1h">1 Hour</button>
-                    <button class="timeframe-btn" data-timeframe="6h">6 Hours</button>
-                    <button class="timeframe-btn" data-timeframe="12h">12 Hours</button>
-                    <button class="timeframe-btn" data-timeframe="24h">24 Hours</button>
-                </div>
-                <div class="chart-info" id="chart-info">
-                    <div class="timeframe-title">Last 1 Hour</div>
-                    <div class="price-range" id="price-range"></div>
-                </div>
-                <div class="expanded-chart">
-                    <canvas id="bitcoin-canvas-expanded" width="800" height="400"></canvas>
+                    <div class="timeframe-selector">
+                        <button class="timeframe-btn" data-timeframe="1h">1 Hour</button>
+                        <button class="timeframe-btn" data-timeframe="6h">6 Hours</button>
+                        <button class="timeframe-btn" data-timeframe="12h">12 Hours</button>
+                        <button class="timeframe-btn active" data-timeframe="24h">24 Hours</button>
+                        <button class="timeframe-btn" data-timeframe="7d">7 Days</button>
+                    </div>
+                    <div class="chart-info" id="chart-info">
+                        <div class="timeframe-title">Last 24 Hours</div>
+                        <div class="price-range" id="price-range"></div>
+                    </div>
+                    <div class="expanded-chart">
+                        <canvas id="bitcoin-canvas-expanded" width="800" height="400"></canvas>
+                    </div>
                 </div>
             </div>
         `;
@@ -85,7 +90,7 @@ export default class BitcoinChartApp {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-bottom: 10px;
+                margin-bottom: 8px;
             }
             .bitcoin-title {
                 font-weight: bold;
@@ -100,7 +105,7 @@ export default class BitcoinChartApp {
             }
             .bitcoin-change {
                 font-size: 1em;
-                margin-bottom: 15px;
+                margin-bottom: 10px;
                 font-weight: 500;
             }
             .bitcoin-change.positive {
@@ -114,12 +119,13 @@ export default class BitcoinChartApp {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                margin-bottom: 10px;
+                margin-bottom: 8px;
+                min-height: 100px;
             }
             .click-hint {
                 text-align: center;
                 color: #888;
-                font-size: 0.9em;
+                font-size: 0.8em;
                 font-style: italic;
             }
             .bitcoin-expanded {
@@ -128,16 +134,36 @@ export default class BitcoinChartApp {
                 left: 0;
                 width: 100vw;
                 height: 100vh;
+                z-index: 9999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .expanded-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
                 background: rgba(0, 0, 0, 0.95);
-                z-index: 3000;
-                padding: 20px;
+                backdrop-filter: blur(5px);
+            }
+            .expanded-content {
+                position: relative;
+                background: #1a1a1a;
+                border-radius: 15px;
+                padding: 30px;
+                max-width: 90vw;
+                max-height: 90vh;
                 overflow-y: auto;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
             }
             .expanded-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: flex-start;
-                margin-bottom: 20px;
+                margin-bottom: 25px;
             }
             .expanded-title h3 {
                 margin: 0 0 10px 0;
@@ -155,11 +181,15 @@ export default class BitcoinChartApp {
                 color: white;
                 border: none;
                 border-radius: 50%;
-                width: 40px;
-                height: 40px;
+                width: 50px;
+                height: 50px;
                 cursor: pointer;
-                font-size: 24px;
+                font-size: 28px;
                 transition: all 0.3s ease;
+                position: relative;
+                z-index: 10000;
+                flex-shrink: 0;
+                margin-left: 20px;
             }
             .close-expanded:hover {
                 background: #d32f2f;
@@ -167,20 +197,21 @@ export default class BitcoinChartApp {
             }
             .timeframe-selector {
                 display: flex;
-                gap: 15px;
-                margin-bottom: 20px;
+                gap: 12px;
+                margin-bottom: 25px;
                 justify-content: center;
+                flex-wrap: wrap;
             }
             .timeframe-btn {
-                padding: 12px 24px;
+                padding: 12px 20px;
                 background: #333;
                 color: white;
                 border: none;
                 border-radius: 8px;
                 cursor: pointer;
-                font-size: 1em;
+                font-size: 0.95em;
                 transition: all 0.3s ease;
-                min-width: 100px;
+                min-width: 90px;
             }
             .timeframe-btn:hover {
                 background: #555;
@@ -211,6 +242,9 @@ export default class BitcoinChartApp {
                 border-radius: 10px;
                 padding: 20px;
             }
+            #bitcoin-canvas-mini {
+                border-radius: 5px;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -221,10 +255,25 @@ export default class BitcoinChartApp {
             this.toggleExpanded();
         });
         
-        // Close expanded view
+        // Close expanded view - multiple ways
+        const expandedEl = this.element.querySelector('#bitcoin-expanded');
+        
+        // Click close button
         this.element.querySelector('.close-expanded').addEventListener('click', (e) => {
             e.stopPropagation();
             this.toggleExpanded();
+        });
+        
+        // Click overlay to close
+        this.element.querySelector('.expanded-overlay').addEventListener('click', () => {
+            this.toggleExpanded();
+        });
+        
+        // ESC key to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isExpanded) {
+                this.toggleExpanded();
+            }
         });
         
         // Timeframe buttons
@@ -249,22 +298,25 @@ export default class BitcoinChartApp {
             
             console.log(`Current BTC price: $${this.currentPrice}`);
             
-            // Fetch historical data for all timeframes
-            await Promise.all([
-                this.fetchHistoricalData('1h'),
-                this.fetchHistoricalData('6h'),
-                this.fetchHistoricalData('12h'),
-                this.fetchHistoricalData('24h')
-            ]);
+            // Fetch historical data - start with 24h for mini chart
+            await this.fetchHistoricalData('24h');
             
             this.updateDisplay();
             this.drawMiniChart();
             
-            // Update expanded view if open
-            if (this.isExpanded) {
-                this.drawExpandedChart();
-                this.updateChartInfo();
-            }
+            // Load other timeframes in background
+            setTimeout(async () => {
+                await Promise.all([
+                    this.fetchHistoricalData('1h'),
+                    this.fetchHistoricalData('6h'),
+                    this.fetchHistoricalData('12h'),
+                    this.fetchHistoricalData('7d')
+                ]);
+                
+                if (this.isExpanded) {
+                    this.drawExpandedChart();
+                }
+            }, 1000);
             
         } catch (error) {
             console.error('Failed to fetch Bitcoin data:', error);
@@ -275,20 +327,33 @@ export default class BitcoinChartApp {
     async fetchHistoricalData(timeframe) {
         try {
             const intervals = {
-                '1h': { days: '1', interval: 'hourly', points: 60 },
+                '1h': { days: '1', interval: 'minutely', points: 60 },
                 '6h': { days: '1', interval: 'hourly', points: 6 },
                 '12h': { days: '1', interval: 'hourly', points: 12 },
-                '24h': { days: '2', interval: 'hourly', points: 24 }
+                '24h': { days: '2', interval: 'hourly', points: 24 },
+                '7d': { days: '7', interval: 'daily', points: 7 }
             };
             
             const config = intervals[timeframe];
-            const response = await fetch(
-                `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${config.days}&interval=${config.interval}`
-            );
+            
+            // For 7 days, we need different API call
+            let url;
+            if (timeframe === '7d') {
+                url = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=7&interval=daily`;
+            } else {
+                url = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${config.days}&interval=${config.interval}`;
+            }
+            
+            const response = await fetch(url);
             const data = await response.json();
             
-            // Get the last N data points based on timeframe
-            const prices = data.prices.slice(-config.points);
+            // Get the appropriate data points based on timeframe
+            let prices;
+            if (timeframe === '7d') {
+                prices = data.prices; // All 7 days
+            } else {
+                prices = data.prices.slice(-config.points);
+            }
             
             this.historicalData[timeframe] = prices.map(([timestamp, price]) => ({
                 time: new Date(timestamp),
@@ -326,10 +391,11 @@ export default class BitcoinChartApp {
         const canvas = this.element.querySelector('#bitcoin-canvas-mini');
         if (!canvas) return;
         
-        const data = this.historicalData['1h'];
+        // Use 24h data for mini chart
+        const data = this.historicalData['24h'];
         if (data.length < 2) return;
         
-        this.drawChartOnCanvas(canvas, 200, 80, data, false);
+        this.drawChartOnCanvas(canvas, 260, 100, data, false);
     }
     
     drawExpandedChart() {
@@ -355,7 +421,7 @@ export default class BitcoinChartApp {
         
         if (priceRange === 0) return;
         
-        const margin = showLabels ? 60 : 20;
+        const margin = showLabels ? 60 : 10;
         const chartWidth = width - (margin * 2);
         const chartHeight = height - (margin * 2);
         
@@ -421,14 +487,24 @@ export default class BitcoinChartApp {
             // X-axis labels (times)
             ctx.textAlign = 'center';
             for (let i = 0; i <= 6; i++) {
-                if (i * 6 < data.length) {
-                    const dataPoint = data[Math.floor(i * (data.length - 1) / 6)];
+                if (i < data.length) {
+                    const dataIndex = Math.floor(i * (data.length - 1) / 6);
+                    const dataPoint = data[dataIndex];
                     const x = margin + (chartWidth * i / 6);
-                    const timeStr = dataPoint.time.toLocaleTimeString('en-US', { 
-                        hour: '2-digit', 
-                        minute: '2-digit',
-                        hour12: false
-                    });
+                    
+                    let timeStr;
+                    if (this.selectedTimeframe === '7d') {
+                        timeStr = dataPoint.time.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric'
+                        });
+                    } else {
+                        timeStr = dataPoint.time.toLocaleTimeString('en-US', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: false
+                        });
+                    }
                     ctx.fillText(timeStr, x, height - margin + 20);
                 }
             }
@@ -467,7 +543,8 @@ export default class BitcoinChartApp {
             '1h': 'Last 1 Hour',
             '6h': 'Last 6 Hours', 
             '12h': 'Last 12 Hours',
-            '24h': 'Last 24 Hours'
+            '24h': 'Last 24 Hours',
+            '7d': 'Last 7 Days'
         };
         
         this.element.querySelector('.timeframe-title').textContent = titles[this.selectedTimeframe];
@@ -480,12 +557,23 @@ export default class BitcoinChartApp {
         const expandedElement = this.element.querySelector('#bitcoin-expanded');
         
         if (this.isExpanded) {
-            expandedElement.style.display = 'block';
-            this.updateDisplay();
-            this.drawExpandedChart();
-            this.updateChartInfo();
+            expandedElement.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            
+            // Load data for selected timeframe if not already loaded
+            if (this.historicalData[this.selectedTimeframe].length === 0) {
+                this.fetchHistoricalData(this.selectedTimeframe).then(() => {
+                    this.drawExpandedChart();
+                    this.updateChartInfo();
+                });
+            } else {
+                this.updateDisplay();
+                this.drawExpandedChart();
+                this.updateChartInfo();
+            }
         } else {
             expandedElement.style.display = 'none';
+            document.body.style.overflow = ''; // Restore scrolling
         }
     }
     
@@ -501,8 +589,16 @@ export default class BitcoinChartApp {
             }
         });
         
-        this.drawExpandedChart();
-        this.updateChartInfo();
+        // Load data if not already loaded
+        if (this.historicalData[timeframe].length === 0) {
+            this.fetchHistoricalData(timeframe).then(() => {
+                this.drawExpandedChart();
+                this.updateChartInfo();
+            });
+        } else {
+            this.drawExpandedChart();
+            this.updateChartInfo();
+        }
     }
     
     startUpdates() {
@@ -520,5 +616,6 @@ export default class BitcoinChartApp {
         if (this.intervalId) {
             clearInterval(this.intervalId);
         }
+        document.body.style.overflow = ''; // Restore scrolling if modal was open
     }
 }
