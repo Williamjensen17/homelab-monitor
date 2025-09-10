@@ -1,0 +1,13 @@
+{
+    "id": "clock",
+    "name": "Digital Clock",
+    "description": "A simple digital clock with customizable format",
+    "version": "1.0.0",
+    "author": "Homelab Monitor",
+    "defaultConfig": {
+        "format24h": true,
+        "showSeconds": true,
+        "showDate": true,
+        "timezone": "auto"
+    }
+}
