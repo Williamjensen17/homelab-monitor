@@ -18,7 +18,7 @@ export default class BitcoinChartApp {
     
     render() {
         this.element.innerHTML = `
-            <div class="bitcoin-container" onclick="bitcoinChart.toggleExpanded()">
+            <div class="bitcoin-container">
                 <div class="bitcoin-header">
                     <div class="bitcoin-title">₿ Bitcoin</div>
                     <div class="bitcoin-price" id="bitcoin-price">Loading...</div>
@@ -32,122 +32,147 @@ export default class BitcoinChartApp {
             <div class="bitcoin-expanded" id="bitcoin-expanded" style="display: none;">
                 <div class="expanded-header">
                     <h3>Bitcoin Price Chart</h3>
-                    <button class="close-expanded" onclick="bitcoinChart.toggleExpanded()">×</button>
+                    <button class="close-expanded">×</button>
                 </div>
                 <div class="timeframe-selector">
-                    <button onclick="bitcoinChart.setTimeframe('1h')" class="timeframe-btn active">1H</button>
-                    <button onclick="bitcoinChart.setTimeframe('6h')" class="timeframe-btn">6H</button>
-                    <button onclick="bitcoinChart.setTimeframe('12h')" class="timeframe-btn">12H</button>
-                    <button onclick="bitcoinChart.setTimeframe('24h')" class="timeframe-btn">24H</button>
+                    <button class="timeframe-btn active" data-timeframe="1h">1H</button>
+                    <button class="timeframe-btn" data-timeframe="6h">6H</button>
+                    <button class="timeframe-btn" data-timeframe="12h">12H</button>
+                    <button class="timeframe-btn" data-timeframe="24h">24H</button>
                 </div>
                 <div class="expanded-chart">
                     <canvas id="bitcoin-canvas-expanded" width="700" height="400"></canvas>
                 </div>
             </div>
-            
-            <style>
-                .bitcoin-container {
-                    cursor: pointer;
-                    padding: 10px;
-                    height: 100%;
-                    display: flex;
-                    flex-direction: column;
-                }
-                .bitcoin-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 10px;
-                }
-                .bitcoin-title {
-                    font-weight: bold;
-                    color: #f7931a;
-                }
-                .bitcoin-price {
-                    font-size: 1.2em;
-                    font-weight: bold;
-                    color: #4CAF50;
-                }
-                .bitcoin-change {
-                    font-size: 0.9em;
-                    margin-bottom: 10px;
-                }
-                .bitcoin-change.positive {
-                    color: #4CAF50;
-                }
-                .bitcoin-change.negative {
-                    color: #f44336;
-                }
-                .bitcoin-chart {
-                    flex: 1;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .bitcoin-expanded {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100vw;
-                    height: 100vh;
-                    background: rgba(0, 0, 0, 0.95);
-                    z-index: 3000;
-                    padding: 20px;
-                }
-                .expanded-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 20px;
-                }
-                .close-expanded {
-                    background: #f44336;
-                    color: white;
-                    border: none;
-                    border-radius: 50%;
-                    width: 30px;
-                    height: 30px;
-                    cursor: pointer;
-                    font-size: 20px;
-                }
-                .timeframe-selector {
-                    display: flex;
-                    gap: 10px;
-                    margin-bottom: 20px;
-                }
-                .timeframe-btn {
-                    padding: 8px 15px;
-                    background: #333;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                }
-                .timeframe-btn.active {
-                    background: #4CAF50;
-                }
-                .expanded-chart {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                }
-            </style>
         `;
         
-        // Make this instance globally accessible for onclick handlers
-        window.bitcoinChart = this;
+        this.addStyles();
+        this.bindEvents();
+    }
+    
+    addStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .bitcoin-container {
+                cursor: pointer;
+                padding: 10px;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+            }
+            .bitcoin-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+            }
+            .bitcoin-title {
+                font-weight: bold;
+                color: #f7931a;
+            }
+            .bitcoin-price {
+                font-size: 1.2em;
+                font-weight: bold;
+                color: #4CAF50;
+            }
+            .bitcoin-change {
+                font-size: 0.9em;
+                margin-bottom: 10px;
+            }
+            .bitcoin-change.positive {
+                color: #4CAF50;
+            }
+            .bitcoin-change.negative {
+                color: #f44336;
+            }
+            .bitcoin-chart {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .bitcoin-expanded {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.95);
+                z-index: 3000;
+                padding: 20px;
+            }
+            .expanded-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+            .close-expanded {
+                background: #f44336;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 30px;
+                height: 30px;
+                cursor: pointer;
+                font-size: 20px;
+            }
+            .timeframe-selector {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            .timeframe-btn {
+                padding: 8px 15px;
+                background: #333;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            .timeframe-btn.active {
+                background: #4CAF50;
+            }
+            .expanded-chart {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    bindEvents() {
+        // Click to expand
+        this.element.querySelector('.bitcoin-container').addEventListener('click', () => {
+            this.toggleExpanded();
+        });
+        
+        // Close expanded view
+        this.element.querySelector('.close-expanded').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleExpanded();
+        });
+        
+        // Timeframe buttons
+        this.element.querySelectorAll('.timeframe-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.setTimeframe(btn.dataset.timeframe);
+            });
+        });
     }
     
     async fetchInitialData() {
         try {
-            // Fetch current price
-            const priceResponse = await fetch('https://api.coindesk.com/v1/bpi/currentprice.json');
-            const priceData = await priceResponse.json();
-            this.currentPrice = parseFloat(priceData.bpi.USD.rate.replace(',', ''));
+            // Fetch current price from CoinGecko (more reliable)
+            const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true');
+            const data = await response.json();
             
-            // Fetch historical data for chart
+            this.currentPrice = data.bitcoin.usd;
+            this.priceChange24h = data.bitcoin.usd_24h_change;
+            
             await this.fetchHistoricalData();
-            
             this.updateDisplay();
         } catch (error) {
             console.error('Failed to fetch Bitcoin data:', error);
@@ -157,7 +182,6 @@ export default class BitcoinChartApp {
     
     async fetchHistoricalData(timeframe = '1h') {
         try {
-            // Using a different API for historical data (CoinGecko)
             const hours = {
                 '1h': 1,
                 '6h': 6,
@@ -165,8 +189,9 @@ export default class BitcoinChartApp {
                 '24h': 24
             }[timeframe] || 1;
             
+            const days = hours / 24;
             const response = await fetch(
-                `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${hours/24}&interval=hourly`
+                `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}&interval=hourly`
             );
             const data = await response.json();
             
@@ -189,12 +214,9 @@ export default class BitcoinChartApp {
             priceElement.textContent = `$${this.currentPrice.toLocaleString()}`;
         }
         
-        if (changeElement && this.priceHistory.length > 1) {
-            const oldPrice = this.priceHistory[0].price;
-            const change = this.currentPrice - oldPrice;
-            const changePercent = ((change / oldPrice) * 100);
-            
-            changeElement.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} (${changePercent.toFixed(2)}%)`;
+        if (changeElement && this.priceChange24h !== undefined) {
+            const change = this.priceChange24h;
+            changeElement.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
             changeElement.className = `bitcoin-change ${change >= 0 ? 'positive' : 'negative'}`;
         }
     }
@@ -223,6 +245,8 @@ export default class BitcoinChartApp {
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
         const priceRange = maxPrice - minPrice;
+        
+        if (priceRange === 0) return;
         
         ctx.strokeStyle = '#4CAF50';
         ctx.lineWidth = 2;
@@ -268,7 +292,7 @@ export default class BitcoinChartApp {
         const buttons = this.element.querySelectorAll('.timeframe-btn');
         buttons.forEach(btn => {
             btn.classList.remove('active');
-            if (btn.textContent === timeframe.toUpperCase()) {
+            if (btn.dataset.timeframe === timeframe) {
                 btn.classList.add('active');
             }
         });
@@ -289,9 +313,6 @@ export default class BitcoinChartApp {
     destroy() {
         if (this.intervalId) {
             clearInterval(this.intervalId);
-        }
-        if (window.bitcoinChart === this) {
-            delete window.bitcoinChart;
         }
     }
 }
